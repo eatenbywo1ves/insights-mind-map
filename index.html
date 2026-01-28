@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Key Insights Mind Map - Interactive Visualization</title>
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #container {
+            display: flex;
+            height: 100vh;
+        }
+
+        #sidebar {
+            width: 350px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        #mynetwork {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        .stats {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .stats h3 {
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .stats p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .filter-group {
+            margin-bottom: 15px;
+        }
+
+        .filter-group h3 {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .filter-btn {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .filter-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        #detail-panel {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        #detail-panel.visible {
+            display: block;
+        }
+
+        #detail-panel h2 {
+            color: #667eea;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        #detail-panel h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        #detail-panel p {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        #detail-panel ul {
+            margin-left: 20px;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        .tag {
+            display: inline-block;
+            background: #e0e7ff;
+            color: #4c51bf;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin: 2px;
+        }
+
+        .legend {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+
+        .legend h3 {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .reset-btn {
+            width: 100%;
+            padding: 10px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .reset-btn:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="sidebar">
+            <h1>🧠 Key Insights Mind Map</h1>
+
+            <div class="stats">
+                <h3>📊 Statistics</h3>
+                <p><strong>Total Insights:</strong> 67</p>
+                <p><strong>Categories:</strong> 5</p>
+                <p><strong>Unique Tags:</strong> 110+</p>
+                <p><strong>Last Updated:</strong> 2026-01-27</p>
+            </div>
+
+            <div class="controls">
+                <button class="reset-btn" onclick="resetView()">🔄 Reset View</button>
+
+                <input type="text" id="searchBox" class="search-box" placeholder="🔍 Search insights, tags, or keywords...">
+
+                <div class="filter-group">
+                    <h3>Filter by Category:</h3>
+                    <div class="filter-buttons">
+                        <button class="filter-btn" onclick="filterByCategory('all')">All</button>
+                        <button class="filter-btn" onclick="filterByCategory('Technical')">Technical</button>
+                        <button class="filter-btn" onclick="filterByCategory('Tool & Workflow')">Tool & Workflow</button>
+                        <button class="filter-btn" onclick="filterByCategory('Documentation')">Documentation</button>
+                        <button class="filter-btn" onclick="filterByCategory('Problem-Solving')">Problem-Solving</button>
+                        <button class="filter-btn" onclick="filterByCategory('Methodology')">Methodology</button>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <h3>Popular Tags:</h3>
+                    <div class="filter-buttons" id="tagFilters">
+                        <button class="filter-btn" onclick="filterByTag('production')">production</button>
+                        <button class="filter-btn" onclick="filterByTag('performance')">performance</button>
+                        <button class="filter-btn" onclick="filterByTag('security')">security</button>
+                        <button class="filter-btn" onclick="filterByTag('workflow')">workflow</button>
+                        <button class="filter-btn" onclick="filterByTag('productivity')">productivity</button>
+                        <button class="filter-btn" onclick="filterByTag('documentation')">documentation</button>
+                        <button class="filter-btn" onclick="filterByTag('git')">git</button>
+                        <button class="filter-btn" onclick="filterByTag('methodology')">methodology</button>
+                        <button class="filter-btn" onclick="filterByTag('vault')">vault</button>
+                        <button class="filter-btn" onclick="filterByTag('ghidra')">ghidra</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="legend">
+                <h3>🎨 Legend</h3>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #667eea;"></div>
+                    <span>Central Hub</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f093fb;"></div>
+                    <span>Technical Insights</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #4facfe;"></div>
+                    <span>Tool & Workflow</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #43e97b;"></div>
+                    <span>Documentation</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #fa709a;"></div>
+                    <span>Problem-Solving</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #feca57;"></div>
+                    <span>Methodology</span>
+                </div>
+            </div>
+
+            <div id="detail-panel">
+                <h2 id="detail-title"></h2>
+                <h3 id="detail-category"></h3>
+                <p id="detail-description"></p>
+                <div id="detail-points"></div>
+                <div id="detail-impact"></div>
+                <div id="detail-tags"></div>
+            </div>
+        </div>
+
+        <div id="mynetwork"></div>
+    </div>
+
+    <script>
+        // Insights data structure
+        const insights = [
+            {id: 1, label: "PowerShell Alias System", category: "Tool & Workflow", description: "PowerShell has extensive built-in aliases that map common Unix commands to PowerShell cmdlets", tags: ["powershell", "aliases", "workflow"], impact: "Improves command-line efficiency when switching between Unix and Windows"},
+            {id: 2, label: "Platform-Specific Performance", category: "Technical", description: "Windows and Linux have fundamentally different architectural limitations for high-concurrency applications", tags: ["performance", "architecture", "windows", "linux", "production"], impact: "Critical for architecture decisions - develop on Windows, deploy to Linux"},
+            {id: 3, label: "Layered Optimization Strategy", category: "Problem-Solving", description: "Complex performance problems often have multiple sequential bottlenecks that must be addressed in layers", tags: ["performance", "optimization", "debugging", "methodology"], impact: "Systematic approach prevents premature conclusions about performance limits"},
+            {id: 4, label: "Health Checks vs Statistics", category: "Technical", description: "Load balancer health checks must be lightweight and separated from administrative statistics", tags: ["architecture", "performance", "loadbalancing", "production"], impact: "Essential for production stability under load balancer traffic"},
+            {id: 5, label: "Security Incident Response", category: "Tool & Workflow", description: "Security incidents can be responded to with automated, tested scripts rather than manual emergency procedures", tags: ["security", "automation", "incident-response", "devops"], impact: "Reduces incident response time and human error during security events"},
+            {id: 6, label: "Production Readiness Validation", category: "Technical", description: "Production readiness requires systematic validation across multiple dimensions", tags: ["production", "testing", "validation", "quality"], impact: "Prevents production incidents through systematic pre-deployment validation"},
+            {id: 7, label: "Custom MCP Server Development", category: "Technical", description: "Model Context Protocol (MCP) servers enable Claude Code to integrate with custom tools and services", tags: ["mcp", "integration", "claude-code", "tooling"], impact: "Extends Claude Code capabilities with custom domain-specific tools"},
+            {id: 8, label: "Documentation as Code", category: "Documentation", description: "Treating documentation with the same rigor as source code improves maintainability", tags: ["documentation", "best-practices", "workflow"], impact: "Prevents documentation drift and maintains accuracy over time"},
+            {id: 9, label: "Database Connection Pool", category: "Technical", description: "Database engine creation patterns have massive impact on production performance", tags: ["database", "architecture", "performance", "production"], impact: "Prevents catastrophic production failures under load"},
+            {id: 10, label: "Monitoring Infrastructure", category: "Technical", description: "Comprehensive monitoring requires integration of multiple specialized tools", tags: ["monitoring", "observability", "grafana", "prometheus"], impact: "Enables proactive issue detection and rapid debugging"},
+            {id: 11, label: "Deployment Automation", category: "Tool & Workflow", description: "Multi-phase deployment automation reduces risk and enables rollback", tags: ["deployment", "automation", "devops", "production"], impact: "Enables confident production deployments with minimal downtime"},
+            {id: 12, label: "VS Code Terminal Integration", category: "Tool & Workflow", description: "Custom terminal aliases dramatically improve developer productivity", tags: ["productivity", "terminal", "aliases", "workflow"], impact: "Reduces repetitive typing and speeds up common workflows"},
+            {id: 13, label: "PDAL Framework", category: "Methodology", description: "Structured framework for analyzing and improving codebases: Perceive → Decide → Act → Learn", tags: ["methodology", "framework", "code-quality", "security"], impact: "Systematic approach prevents ad-hoc decisions and ensures critical issues addressed first"},
+            {id: 14, label: "Systematic Commit Organization", category: "Tool & Workflow", description: "Organizing uncommitted files into logical, atomic commits improves git history and code review", tags: ["git", "workflow", "code-review", "best-practices"], impact: "Meaningful git history, easier code review, clear rollback boundaries"},
+            {id: 15, label: "Import Auditing", category: "Technical", description: "Verifying imports of shared resources prevents catastrophic production bugs", tags: ["debugging", "production", "code-review", "best-practices"], impact: "Prevented catastrophic production failure discovered before deployment"},
+            {id: 16, label: "Client vs Server Measurement", category: "Problem-Solving", description: "Always measure performance at both client and server to identify true bottlenecks", tags: ["performance", "debugging", "load-testing", "methodology"], impact: "Prevents false conclusions about server performance issues"},
+            {id: 17, label: "Structured Logging", category: "Technical", description: "Comprehensive structured logging is insurance against production mysteries", tags: ["logging", "observability", "production", "debugging"], impact: "Enables debugging production issues that would otherwise be impossible to diagnose"},
+            {id: 18, label: "New Framework Detection", category: "Problem-Solving", description: "Systematic file organization reveals architectural patterns and new frameworks", tags: ["architecture", "documentation", "discovery", "methodology"], impact: "Prevents hidden frameworks from becoming undocumented tribal knowledge"},
+            {id: 19, label: "Bare Except Clauses Security", category: "Technical", description: "Bare except: clauses can suppress critical system signals creating security risks", tags: ["security", "code-quality", "python", "production"], impact: "Prevents production systems that can't be cleanly shutdown or debugged"},
+            {id: 20, label: "Configuration Consolidation", category: "Technical", description: "Centralized configuration using Pydantic prevents inconsistent behavior across system", tags: ["configuration", "architecture", "production", "best-practices"], impact: "Eliminates configuration drift that causes production mysteries"},
+            {id: 21, label: "Load Testing Default Limits", category: "Problem-Solving", description: "Default limits in testing tools and production code often too low for real-world scenarios", tags: ["load-testing", "performance", "configuration", "production"], impact: "Prevents misleading load test results and incorrect capacity planning"},
+            {id: 22, label: "Risk-Based Prioritization", category: "Methodology", description: "Use risk and impact matrix to prioritize technical work, not just urgency", tags: ["methodology", "prioritization", "project-management", "best-practices"], impact: "Ensures critical issues addressed before polish, maximizes value delivery"},
+            {id: 23, label: "Recursive Documentation Trap", category: "Documentation", description: "Excessive meta-documentation creates overhead that consumes development capacity", tags: ["documentation", "productivity", "anti-pattern", "workflow"], impact: "Identifying this pattern enabled 2-week freeze to stabilize codebase and shift to feature development"},
+            {id: 24, label: "Rule of 4 - Cognitive Limit", category: "Methodology", description: "Humans can actively develop 3-4 complex projects simultaneously before quality degrades", tags: ["productivity", "project-management", "cognitive-science", "focus"], impact: "Enables focus and prevents context switching overhead"},
+            {id: 25, label: "Documentation Freeze Experiment", category: "Methodology", description: "Treating organizational changes as time-boxed experiments with measurable outcomes", tags: ["methodology", "experimentation", "documentation", "workflow", "metrics"], impact: "Scientific approach to workflow improvements enables data-driven decisions"},
+            {id: 26, label: "Feature:Doc Ratio Metric", category: "Methodology", description: "Tracking ratio of feature commits to documentation commits reveals development velocity", tags: ["metrics", "productivity", "workflow", "measurement", "velocity"], impact: "Quantifies 'feeling busy but not shipping features' problem"},
+            {id: 27, label: "Context Switching Cost", category: "Methodology", description: "Switching between projects has measurable, quantifiable time cost", tags: ["productivity", "context-switching", "time-management", "focus"], impact: "Justifies focusing on fewer projects and completing work in batches"},
+            {id: 28, label: "GitHub Over Markdown", category: "Tool & Workflow", description: "Use GitHub's native features (Issues, Discussions, Projects) instead of markdown planning files", tags: ["github", "workflow", "documentation", "project-management", "tooling"], impact: "Reduces documentation overhead and improves team collaboration"},
+            {id: 29, label: "Pre-commit Hooks Discipline", category: "Tool & Workflow", description: "Pre-commit hooks enforce organizational policies automatically, reducing manual oversight", tags: ["automation", "git", "workflow", "policy", "enforcement"], impact: "Automates policy enforcement that would otherwise require constant vigilance"},
+            {id: 30, label: "Just-In-Time Documentation", category: "Documentation", description: "Write documentation when needed (onboarding, confusion, repeated questions), not preemptively", tags: ["documentation", "lean", "agile", "just-in-time", "efficiency"], impact: "Prevents wasted effort on documentation that's never read"},
+            {id: 31, label: "Modular Configuration Pattern", category: "Tool & Workflow", description: "Load configuration from modular files based on context, not monolithic configs", tags: ["configuration", "shell", "git", "modularity", "best-practices"], impact: "Enables portable, maintainable configuration across multiple environments"},
+            {id: 32, label: "Git Productivity Shortcuts", category: "Tool & Workflow", description: "Custom git aliases dramatically improve developer productivity for common operations", tags: ["git", "productivity", "aliases", "terminal", "workflow"], impact: "Saves dozens of keystrokes daily, improves git log readability"},
+            {id: 33, label: "NPM Workspaces Monorepo", category: "Technical", description: "NPM Workspaces enable efficient multi-package management in single repository with shared dependencies", tags: ["monorepo", "npm", "architecture", "dependency-management", "build-system"], impact: "Enables managing complex multi-package ecosystems with minimal overhead"},
+            {id: 34, label: "Turbo Caching - 90% Faster Builds", category: "Tool & Workflow", description: "Intelligent build caching with MD5 hash comparison delivers 90% faster builds", tags: ["build-optimization", "caching", "performance", "turbo", "developer-experience"], impact: "Near-instant feedback loop for unchanged code dramatically improves developer experience"},
+            {id: 35, label: "MCP Gateway Pattern", category: "Technical", description: "Central gateway provides service discovery, load balancing, and request routing for MCP servers", tags: ["architecture", "microservices", "mcp", "gateway", "load-balancing"], impact: "Enables scalable microservices architecture with built-in observability"},
+            {id: 36, label: "Polyglot Monorepo", category: "Technical", description: "Single monorepo can effectively manage multiple languages and runtimes with proper tooling", tags: ["monorepo", "polyglot", "architecture", "typescript", "python", "docker"], impact: "Enables using the right tool for each job while maintaining monorepo benefits"},
+            {id: 37, label: "TypeScript Project References", category: "Technical", description: "TypeScript project references enable incremental builds and automatic dependency resolution", tags: ["typescript", "performance", "build-optimization", "incremental-builds"], impact: "Dramatically improves build performance in large TypeScript monorepos"},
+            {id: 38, label: "Event-Driven Architecture", category: "Methodology", description: "Event-driven patterns (Event Sourcing, CQRS, SAGA) enable scalable distributed systems", tags: ["architecture", "event-driven", "cqrs", "event-sourcing", "saga"], impact: "Enables building scalable, maintainable distributed systems with strong consistency guarantees"},
+            {id: 39, label: "Domain-Driven Design", category: "Methodology", description: "Organize code by business domains rather than technical layers for better cohesion", tags: ["architecture", "domain-driven-design", "organization", "modularity"], impact: "Improves code organization, maintainability, and alignment with business needs"},
+            {id: 40, label: "Multi-Protocol MCP Servers", category: "Technical", description: "MCP servers can expose multiple protocols (HTTP, WebSocket, stdio) from single implementation", tags: ["mcp", "architecture", "protocols", "websocket", "http"], impact: "Maximizes MCP server versatility and integration options"},
+            {id: 41, label: "Phase-Based Project Lifecycle", category: "Tool & Workflow", description: "Organize projects by lifecycle stage (active, archived) for better focus and resource allocation", tags: ["project-management", "workflow", "organization", "lifecycle"], impact: "Prevents context switching overhead and clarifies project priorities"},
+            {id: 42, label: "100% API Documentation Coverage", category: "Documentation", description: "Comprehensive documentation system with TypeDoc automation ensures complete API coverage", tags: ["documentation", "automation", "typedoc", "api", "best-practices"], impact: "Ensures documentation never falls out of sync with code"},
+            {id: 43, label: "Intelligent Cache Invalidation", category: "Methodology", description: "Hash-based cache invalidation ensures builds are cached when safe and invalidated when necessary", tags: ["caching", "build-optimization", "performance", "methodology"], impact: "Balances build speed with correctness - fast when possible, accurate always"},
+            {id: 44, label: "Comprehensive Observability Stack", category: "Technical", description: "Integrated observability with Prometheus, Grafana, OpenTelemetry, and Jaeger for complete system visibility", tags: ["observability", "monitoring", "prometheus", "grafana", "opentelemetry"], impact: "Enables rapid debugging and performance optimization in production"},
+            {id: 45, label: "Layered Security Architecture", category: "Technical", description: "Defense-in-depth security with multiple layers (auth, authorization, rate limiting, audit)", tags: ["security", "authentication", "authorization", "rate-limiting", "audit"], impact: "Comprehensive security posture with multiple defensive layers"},
+            {id: 46, label: "Four-Phase Migration Strategy", category: "Methodology", description: "Breaking large architectural changes into phased rollout with validation gates", tags: ["methodology", "migration", "risk-management", "phased-rollout"], impact: "Reduces risk of big-bang migrations while showing incremental value"},
+            {id: 47, label: "MCP Server Generator", category: "Tool & Workflow", description: "CLI tool generates MCP server boilerplate with templates and best practices baked in", tags: ["tooling", "code-generation", "mcp", "productivity", "scaffolding"], impact: "Reduces MCP server creation from hours to minutes with consistent quality"},
+            {id: 48, label: "Catalytic Computing - 28,571x Memory", category: "Technical", description: "Catalytic Computing platform achieves revolutionary performance through lattice-based computation", tags: ["performance", "innovation", "gpu", "parallel-computing", "architecture", "catalytic", "lattice-computing"], impact: "Enables processing massive datasets that were previously infeasible"},
+            {id: 49, label: "B-MAD Deployment Methodology", category: "Methodology", description: "Build → Measure → Analyze → Deploy framework provides repeatable, low-risk production deployments", tags: ["methodology", "deployment", "devops", "risk-management", "process", "b-mad", "automation"], impact: "100% deployment success rate across 12 deployments, 0% rollback rate"},
+            {id: 50, label: "Multi-Profile Docker Deployment", category: "Technical", description: "Docker Compose profiles enable flexible, scenario-based service orchestration in single configuration", tags: ["docker", "containers", "orchestration", "devops", "configuration", "profiles", "infrastructure"], impact: "Simplifies deployment scenarios, reduces configuration complexity"},
+            {id: 51, label: "Seven-Layer Security", category: "Technical", description: "Comprehensive security through layered defenses from host to compliance monitoring", tags: ["security", "defense-in-depth", "containers", "kubernetes", "zero-trust", "compliance", "monitoring"], impact: "No single point of failure, multiple compensating controls"},
+            {id: 52, label: "Compliance-Ready Framework", category: "Methodology", description: "Production-ready compliance implementation covering major security and quality standards", tags: ["compliance", "security", "audit", "soc2", "iso27001", "d3fend", "nist", "governance"], impact: "Enterprise-ready security posture, audit-ready documentation"},
+            {id: 53, label: "Production Readiness Scoring", category: "Methodology", description: "Systematic assessment framework for production deployment readiness with clear scoring and blockers", tags: ["methodology", "deployment", "quality", "devops", "risk-management", "assessment", "production"], impact: "Objective deployment decisions, prevents premature production releases"},
+            {id: 54, label: "Lattice Computing Model", category: "Technical", description: "Revolutionary computational model fundamentally different from traditional von Neumann architecture", tags: ["innovation", "architecture", "lattice", "distributed-computing", "gpu", "paradigm", "research"], impact: "Opens new computational paradigms, enables previously infeasible problems"},
+            {id: 55, label: "GPU with CPU Fallback", category: "Technical", description: "Production-ready GPU acceleration with automatic CPU fallback ensures system reliability", tags: ["gpu", "cuda", "performance", "fallback", "reliability", "pytorch", "docker", "nvidia"], impact: "Eliminates GPU as single point of failure, enables heterogeneous deployment"},
+            {id: 56, label: "15,000-Line Documentation System", category: "Documentation", description: "Comprehensive documentation system with specialized master guides covering all production aspects", tags: ["documentation", "knowledge-management", "onboarding", "best-practices", "methodology", "production"], impact: "Enables team onboarding, ensures consistency, reduces knowledge silos"},
+            {id: 57, label: "Documentation ≠ Execution", category: "Methodology", description: "Critical lesson from GitGuardian incident: documenting a fix is not the same as executing it", tags: ["security", "lessons-learned", "incident-response", "process", "verification", "best-practices"], impact: "Highlights need for pre-commit hooks, verification steps, 'trust but verify'"},
+            {id: 58, label: "Test Coverage as Deployment Gate", category: "Methodology", description: "Test coverage used as objective deployment readiness metric with clear rationale", tags: ["testing", "quality", "coverage", "deployment", "metrics", "best-practices", "technical-debt"], impact: "Quantifies testing debt, provides objective deployment criteria"},
+            {id: 59, label: "Distroless Container Hardening", category: "Technical", description: "Container security through distroless base images eliminating shell and package managers", tags: ["security", "containers", "docker", "distroless", "hardening", "best-practices", "minimalism"], impact: "Dramatically reduces attack surface, prevents common container escape techniques"},
+            {id: 60, label: "Polyglot SaaS Stack", category: "Technical", description: "Production-ready SaaS platform combining Python backend, PostgreSQL database, Redis caching, React frontend", tags: ["architecture", "saas", "fastapi", "postgresql", "redis", "react", "multi-tenant", "jwt"], impact: "Modern, scalable SaaS architecture with clear separation of concerns"},
+            {id: 61, label: "Zero Trust Architecture", category: "Technical", description: "Zero trust security model implemented throughout infrastructure and application layers", tags: ["security", "zero-trust", "architecture", "best-practices", "networking", "authentication", "rbac"], impact: "Limits blast radius of breaches, prevents lateral movement"},
+            {id: 62, label: "Five-Phase Deployment Strategy", category: "Methodology", description: "Phased deployment approach with explicit success criteria and time estimates for each phase", tags: ["methodology", "deployment", "phases", "devops", "planning", "risk-management", "process"], impact: "Transforms ambiguous deployment into structured process, enables accurate time estimation"},
+            {id: 63, label: "Prioritized Security Audit Pipeline", category: "Technical", description: "Systematic security audit process addressing CRITICAL, HIGH, and MEDIUM vulnerabilities in prioritized waves", tags: ["security", "audit", "vulnerability-management", "prioritization", "production", "methodology"], impact: "12 security fixes deployed across 3 priority tiers with zero regressions, establishing repeatable audit process"},
+            {id: 64, label: "HashiCorp Vault Secrets Management", category: "Technical", description: "Centralized secrets management with HashiCorp Vault replacing scattered environment variables and hardcoded credentials", tags: ["security", "vault", "secrets-management", "infrastructure", "production", "best-practices"], impact: "Eliminates credential sprawl, enables secret rotation, provides audit trail for all secret access"},
+            {id: 65, label: "SEC-011 Streaming Validation", category: "Technical", description: "Streaming response validation coverage increased from 80% to 100%, ensuring all streaming endpoints are security-validated", tags: ["security", "streaming", "validation", "testing", "coverage", "production"], impact: "Closes security gap in streaming endpoints that could bypass standard request validation"},
+            {id: 66, label: "Audio Feedback Developer Loop", category: "Tool & Workflow", description: "Webhook audio tracker with .wav file playback provides real-time audio cues for development events like task completion, errors, and builds", tags: ["developer-experience", "audio", "feedback", "workflow", "mcp", "productivity"], impact: "Ambient awareness of build/deploy status without constant terminal monitoring"},
+            {id: 67, label: "Ghidra Production Hardening", category: "Technical", description: "Binary analysis tooling (GhidraGo plugin, Ghidra-as-a-Service) hardened for production use with improved reliability and configuration", tags: ["ghidra", "reverse-engineering", "production", "hardening", "security", "tooling"], impact: "Enables reliable automated binary analysis in production workflows"}
+        ];
+
+        // Category colors
+        const categoryColors = {
+            "Technical": "#f093fb",
+            "Tool & Workflow": "#4facfe",
+            "Documentation": "#43e97b",
+            "Problem-Solving": "#fa709a",
+            "Methodology": "#feca57"
+        };
+
+        // Create nodes and edges
+        let nodes = new vis.DataSet([
+            {id: 0, label: "Key Insights\n(67)", shape: "box", color: {background: "#667eea", border: "#5568d3"}, font: {color: "white", size: 20, bold: true}, size: 40}
+        ]);
+
+        let edges = new vis.DataSet([]);
+
+        // Add category nodes
+        let categoryId = 100;
+        const categoryNodes = {};
+        Object.keys(categoryColors).forEach(cat => {
+            nodes.add({
+                id: categoryId,
+                label: cat,
+                shape: "ellipse",
+                color: {background: categoryColors[cat], border: categoryColors[cat]},
+                font: {size: 16, bold: true},
+                size: 30
+            });
+            categoryNodes[cat] = categoryId;
+            edges.add({from: 0, to: categoryId, width: 3, color: {color: categoryColors[cat], opacity: 0.6}});
+            categoryId++;
+        });
+
+        // Add insight nodes
+        insights.forEach(insight => {
+            nodes.add({
+                id: insight.id,
+                label: `#${insight.id}\n${insight.label}`,
+                title: insight.description,
+                shape: "dot",
+                color: {background: categoryColors[insight.category], border: "#333"},
+                font: {size: 12},
+                size: 20,
+                data: insight
+            });
+            edges.add({
+                from: categoryNodes[insight.category],
+                to: insight.id,
+                color: {color: categoryColors[insight.category], opacity: 0.3},
+                width: 1
+            });
+        });
+
+        // Create network
+        const container = document.getElementById("mynetwork");
+        const data = {nodes: nodes, edges: edges};
+        const options = {
+            physics: {
+                enabled: true,
+                barnesHut: {
+                    gravitationalConstant: -8000,
+                    centralGravity: 0.3,
+                    springLength: 150,
+                    springConstant: 0.04,
+                    damping: 0.09,
+                    avoidOverlap: 0.5
+                },
+                stabilization: {
+                    iterations: 1000
+                }
+            },
+            interaction: {
+                hover: true,
+                tooltipDelay: 100,
+                zoomView: true,
+                dragView: true
+            },
+            nodes: {
+                borderWidth: 2,
+                shadow: true
+            },
+            edges: {
+                smooth: {
+                    type: "continuous"
+                }
+            }
+        };
+
+        const network = new vis.Network(container, data, options);
+
+        // Click handler to show details
+        network.on("click", function(params) {
+            if (params.nodes.length > 0) {
+                const nodeId = params.nodes[0];
+                const node = nodes.get(nodeId);
+
+                if (node.data) {
+                    showDetails(node.data);
+                }
+            }
+        });
+
+        function showDetails(insight) {
+            const panel = document.getElementById("detail-panel");
+            document.getElementById("detail-title").textContent = `Insight #${insight.id}: ${insight.label}`;
+            document.getElementById("detail-category").textContent = `Category: ${insight.category}`;
+            document.getElementById("detail-description").textContent = insight.description;
+            document.getElementById("detail-impact").innerHTML = `<strong>Impact:</strong> ${insight.impact}`;
+            document.getElementById("detail-tags").innerHTML = `<strong>Tags:</strong> ${insight.tags.map(t => `<span class="tag">#${t}</span>`).join(' ')}`;
+            panel.classList.add("visible");
+        }
+
+        // Search functionality
+        document.getElementById("searchBox").addEventListener("input", function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+
+            if (searchTerm === "") {
+                nodes.forEach(node => {
+                    nodes.update({id: node.id, hidden: false});
+                });
+                edges.forEach(edge => {
+                    edges.update({id: edge.id, hidden: false});
+                });
+                return;
+            }
+
+            insights.forEach(insight => {
+                const matches =
+                    insight.label.toLowerCase().includes(searchTerm) ||
+                    insight.description.toLowerCase().includes(searchTerm) ||
+                    insight.tags.some(tag => tag.includes(searchTerm)) ||
+                    insight.category.toLowerCase().includes(searchTerm);
+
+                nodes.update({id: insight.id, hidden: !matches});
+            });
+        });
+
+        // Filter by category
+        function filterByCategory(category) {
+            // Update button states
+            document.querySelectorAll('.filter-group .filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            if (category === 'all') {
+                insights.forEach(insight => {
+                    nodes.update({id: insight.id, hidden: false});
+                });
+                return;
+            }
+
+            insights.forEach(insight => {
+                nodes.update({id: insight.id, hidden: insight.category !== category});
+            });
+        }
+
+        // Filter by tag
+        function filterByTag(tag) {
+            event.target.classList.toggle('active');
+            const activeTags = Array.from(document.querySelectorAll('#tagFilters .filter-btn.active'))
+                .map(btn => btn.textContent.trim());
+
+            if (activeTags.length === 0) {
+                insights.forEach(insight => {
+                    nodes.update({id: insight.id, hidden: false});
+                });
+                return;
+            }
+
+            insights.forEach(insight => {
+                const matches = activeTags.some(t => insight.tags.includes(t));
+                nodes.update({id: insight.id, hidden: !matches});
+            });
+        }
+
+        // Reset view
+        function resetView() {
+            // Clear search
+            document.getElementById("searchBox").value = "";
+
+            // Clear filters
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show all nodes
+            nodes.forEach(node => {
+                nodes.update({id: node.id, hidden: false});
+            });
+            edges.forEach(edge => {
+                edges.update({id: edge.id, hidden: false});
+            });
+
+            // Hide detail panel
+            document.getElementById("detail-panel").classList.remove("visible");
+
+            // Reset view
+            network.fit();
+        }
+
+        // Initial fit
+        network.once("stabilizationIterationsDone", function() {
+            network.fit();
+        });
+    </script>
+</body>
+</html>
